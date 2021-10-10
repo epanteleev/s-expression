@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 enum class SexpValueKind : uint8_t {
@@ -11,10 +12,6 @@ enum class SexpValueKind : uint8_t {
 
 class Sexpression final {
 public:
-    Sexpression() : m_kind(SexpValueKind::SEXP) {}
-
-    ~Sexpression() = default;
-
     Sexpression(Sexpression &) = delete;
 
     Sexpression(Sexpression &&sexpression) noexcept:
@@ -25,27 +22,22 @@ public:
     Sexpression operator=(Sexpression &) = delete;
 
 private:
-    explicit Sexpression(const std::string &string);
-
     explicit Sexpression(std::vector<Sexpression> &&vec) :
             m_kind(SexpValueKind::SEXP),
             m_sexp(std::move(vec)) {}
 
+    Sexpression(SexpValueKind kind, std::string string) :
+            m_kind(kind),
+            m_str(std::move(string)) {}
+
 public:
-    void addChild(Sexpression &&sexpression) {
-        if (m_kind == SexpValueKind::STRING) {
-            m_kind = SexpValueKind::SEXP;
-            m_sexp.push_back(Sexpression(m_str));
-        } else {
-            m_sexp.push_back(std::move(sexpression));
-        }
+    inline void addChild(Sexpression &&sexpression) {
+        m_sexp.push_back(std::move(sexpression));
     }
 
-    void addChild(std::string &&str) {
-        addChild(Sexpression(str));
+    inline void addChild(std::string &&str) {
+        addChild(makeFromStr(str));
     }
-
-    void addExpression(const std::string &string);
 
 public:
     [[nodiscard]]
@@ -65,17 +57,17 @@ public:
 
     [[nodiscard]]
     inline bool isString() const noexcept {
-        return this->m_kind == SexpValueKind::STRING;
+        return m_kind == SexpValueKind::STRING;
     }
 
     [[nodiscard]]
     inline bool isSexp() const noexcept {
-        return this->m_kind == SexpValueKind::SEXP;
+        return m_kind == SexpValueKind::SEXP;
     }
 
     [[nodiscard]]
-    bool isNil() const noexcept {
-        return this->m_kind == SexpValueKind::SEXP && this->childCount() == 0;
+    inline bool isNil() const noexcept {
+        return m_kind == SexpValueKind::SEXP && childCount() == 0;
     }
 
 public:
@@ -89,22 +81,8 @@ public:
     using iterator = std::vector<Sexpression>::iterator;
     using const_iterator = std::vector<Sexpression>::const_iterator;
 
-    [[nodiscard]]
-    std::size_t nodes() const noexcept {
-        auto sz = m_sexp.size();
-        if (sz == 0) {
-            return 0;
-        } else {
-            return sz - 1;
-        }
-    }
-
     iterator begin() noexcept {
-        if (nodes() == 0) {
-            return this->end();
-        } else {
-            return ++(m_sexp.begin());
-        }
+        return m_sexp.begin();
     }
 
     iterator end() noexcept {
@@ -113,11 +91,7 @@ public:
 
     [[nodiscard]]
     const_iterator begin() const {
-        if (nodes() == 0) {
-            return end();
-        } else {
-            return ++(m_sexp.begin());
-        }
+        return m_sexp.begin();
     }
 
     [[nodiscard]]
@@ -128,10 +102,6 @@ public:
 private:
     Sexpression &createPath(const std::vector<std::string> &path);
 
-    void addChild(std::vector<Sexpression> &&vec) {
-        addChild(Sexpression(std::move(vec)));
-    }
-
     inline Sexpression &getChild(size_t idx) {
         return m_sexp[idx];
     }
@@ -139,9 +109,13 @@ private:
     Sexpression *findChild(const std::string &name);
 
 public:
-    static Sexpression parse(const std::string &str);
+    static Sexpression make(std::string &&basename) {
+        return {SexpValueKind::SEXP, std::move(basename)};
+    }
 
-public:
+    static Sexpression makeFromStr(const std::string &string);
+
+private:
     SexpValueKind m_kind;
     std::vector<Sexpression> m_sexp{};
     std::string m_str;
