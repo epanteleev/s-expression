@@ -9,7 +9,6 @@ enum class SexpValueKind : uint8_t {
     STRING,
 };
 
-
 class Sexpression final {
 public:
     Sexpression(Sexpression &) = delete;
@@ -26,17 +25,17 @@ private:
             m_kind(SexpValueKind::SEXP),
             m_sexp(std::move(vec)) {}
 
-    Sexpression(SexpValueKind kind, std::string string) :
+    Sexpression(SexpValueKind kind, std::string_view string) :
             m_kind(kind),
-            m_str(std::move(string)) {}
+            m_str(string) {}
 
 public:
-    inline void addChild(Sexpression &&sexpression) {
-        m_sexp.push_back(std::move(sexpression));
+    inline Sexpression& addChild(Sexpression &&sexpression) {
+        return m_sexp.emplace_back(std::move(sexpression));
     }
 
-    inline void addChild(std::string &&str) {
-        addChild(makeFromStr(str));
+    inline Sexpression& addChild(const std::string &str) {
+        return addChild(makeFromStr(str));
     }
 
 public:
@@ -48,7 +47,7 @@ public:
         return m_str;
     }
 
-    Sexpression *getChild(const std::string &path);
+    Sexpression *getChild(std::string_view path);
 
     Sexpression &createPath(const std::string &path);
 
@@ -100,13 +99,12 @@ public:
     }
 
 private:
-    Sexpression &createPath(const std::vector<std::string> &path);
 
-    inline Sexpression &getChild(size_t idx) {
-        return m_sexp[idx];
-    }
+    Sexpression &createPath(const std::vector<std::string_view> &path);
 
-    Sexpression *findChild(const std::string &name);
+    Sexpression *findChild(std::string_view name);
+
+    void toStringIter(std::ostringstream &ostream) const;
 
 public:
     static Sexpression make(std::string &&basename) {
@@ -116,7 +114,7 @@ public:
     static Sexpression makeFromStr(const std::string &string);
 
 private:
+    std::string m_str;
     SexpValueKind m_kind;
     std::vector<Sexpression> m_sexp{};
-    std::string m_str;
 };

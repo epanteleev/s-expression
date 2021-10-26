@@ -1,4 +1,4 @@
-#include "sexpresso.hpp"
+#include "Sexpression.h"
 #include <vector>
 #include <string>
 #include <cctype>
@@ -15,8 +15,8 @@
 static const std::array<char, 11> escape_chars = {'\'', '"', '?', '\\', 'a', 'b', 'f', 'n', 'r', 't', 'v'};
 static const std::array<char, 11> escape_vals = {'\'', '"', '\?', '\\', '\a', '\b', '\f', '\n', '\r', '\t', '\v'};
 
-static std::vector<std::string> splitPathString(const std::string &path) {
-    std::vector<std::string> paths{};
+static std::vector<std::string_view> splitPathString(std::string_view path) {
+    std::vector<std::string_view> paths{};
     if (path.empty()) {
         return paths;
     }
@@ -69,11 +69,10 @@ std::size_t Sexpression::childCount() const {
     return 0;
 }
 
-Sexpression *Sexpression::findChild(const std::string &name) {
+Sexpression *Sexpression::findChild(std::string_view name) {
     auto findPred = [&name](Sexpression &s) {
         return s.m_str == name;
     };
-
 
     auto loc = std::find_if(m_sexp.begin(), m_sexp.end(), findPred);
     if (loc == m_sexp.end()) {
@@ -83,7 +82,7 @@ Sexpression *Sexpression::findChild(const std::string &name) {
     }
 }
 
-Sexpression *Sexpression::getChild(const std::string &path) {
+Sexpression *Sexpression::getChild(std::string_view path) {
     if (m_kind == SexpValueKind::STRING) {
         return nullptr;
     }
@@ -100,7 +99,7 @@ Sexpression *Sexpression::getChild(const std::string &path) {
     return curr;
 }
 
-Sexpression &Sexpression::createPath(const std::vector<std::string> &path) {
+Sexpression &Sexpression::createPath(const std::vector<std::string_view> &path) {
     auto el = this;
     auto pc = path.begin();
     for (; pc != path.end(); ++pc) {
@@ -112,8 +111,7 @@ Sexpression &Sexpression::createPath(const std::vector<std::string> &path) {
         }
     }
     for (; pc != path.end(); ++pc) {
-        el->addChild(Sexpression(SexpValueKind::SEXP, *pc));
-        el = &(el->getChild(el->childCount() - 1));
+        el = &el->addChild(Sexpression(SexpValueKind::SEXP, *pc));
     }
     return *el;
 }
@@ -132,18 +130,18 @@ static std::string stringValToString(const std::string &s) {
     return std::string("\"") + escape(s) + "\"";
 }
 
-std::string Sexpression::toString() const {
-    std::ostringstream ostream{};
+void Sexpression::toStringIter(std::ostringstream& ostream) const {
     switch (m_kind) {
         case SexpValueKind::STRING:
-            return stringValToString(m_str);
+            ostream << stringValToString(m_str);
+            break;
         case SexpValueKind::SEXP: {
             ostream << '(' << m_str;
             if (!m_sexp.empty()) {
                 ostream << ' ';
             }
             for (auto i = m_sexp.begin(); i != m_sexp.end(); i++) {
-                ostream << i->toString();
+                i->toStringIter(ostream);
                 if (i != m_sexp.end() - 1) {
                     ostream << ' ';
                 }
@@ -151,6 +149,11 @@ std::string Sexpression::toString() const {
             ostream << ')';
         }
     }
+}
+
+std::string Sexpression::toString() const {
+    std::ostringstream ostream{};
+    toStringIter(ostream);
     return ostream.str();
 }
 
@@ -181,52 +184,3 @@ bool Sexpression::operator==(const Sexpression &other) const {
 Sexpression Sexpression::makeFromStr(const std::string &string) {
     return {SexpValueKind::STRING, escape(string)};
 }
-
-//Sexpression Sexpression::parse(const std::string &str) {
-//    std::stack<Sexpression> sexprstack{};
-//    Lexer lex(str);
-//    if (lex.peek() != '(') {
-//        throw std::runtime_error(format("in %d line expect '('", lex.lines()));
-//    }
-//    while (!lex.eof()) {
-//        lex.skipSpaces();
-//        switch (lex.peek()) {
-//            case '(': {
-//                lex.get();
-//                Sexpression el = makeFromStr(lex.getString());
-//                el.m_kind = SexpValueKind::SEXP;
-//                sexprstack.push(std::move(el));
-//                break;
-//            }
-//            case ')': {
-//                lex.get();
-//                auto topsexp = std::move(sexprstack.top());
-//                sexprstack.pop();
-//                if (sexprstack.empty()) {
-//                    return topsexp;
-//                }
-//                auto &top = sexprstack.top();
-//                top.addChild(std::move(topsexp));
-//                break;
-//            }
-//            case '\"': {
-//                sexprstack.top().addChild(lex.getStringLiteral());
-//                break;
-//            }
-//            case ';': {
-//                lex.get();
-//                lex.skipComment();
-//                break;
-//            }
-//            default: {
-//                auto &top = sexprstack.top();
-//                top.addChild(makeFromStr(escape(lex.getString())));
-//            }
-//        }
-//    }
-//    if (sexprstack.size() != 1) {
-//        throw std::runtime_error("not enough s-expressions were closed by the end of parsing");
-//    } else {
-//        return std::move(sexprstack.top());
-//    }
-//}

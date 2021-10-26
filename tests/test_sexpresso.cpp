@@ -1,20 +1,21 @@
 #include <string>
-#include "sexpresso.hpp"
+#include <SDocument.h>
+#include "Sexpression.h"
 #include "lest.hpp"
 
 const lest::test specification[] = {
         CASE("Empty_root") {
             std::string str("()");
-            EXPECT_THROWS(Sexpression::parse(str));
+            EXPECT_THROWS(SDocument::parse(str));
         },
         CASE("multipleEmptyRoot") {
             auto str = std::string{"()\n() ()"};
-            EXPECT_THROWS(Sexpression::parse(str));
+            EXPECT_THROWS(SDocument::parse(str));
         },
         CASE("Equality") {
             std::string str("(hi there (what a cool (little list) parser) (library))");
 
-            auto s = Sexpression::parse(str);
+            auto s = SDocument::parse(str);
 
             Sexpression outer = Sexpression::make("hi");
             outer.addChild("there");
@@ -42,8 +43,8 @@ const lest::test specification[] = {
             std::string astr("(this (one is nothing))");
             std::string bstr("(like the (other))");
 
-            auto a = Sexpression::parse(astr);
-            auto b = Sexpression::parse(bstr);
+            auto a = SDocument::parse(astr);
+            auto b = SDocument::parse(bstr);
             EXPECT(a != b);
         },
         CASE("Inequality1") {
@@ -87,7 +88,7 @@ const lest::test specification[] = {
             EXPECT(s1.toString() == "(wow (this (is (cool))))");
             EXPECT(t == (*s1.getChild(pth)));
         },
-        CASE("toString with comma") {
+        CASE("message with comma") {
             std::string str("(a ((b ,(c d))))");
             EXPECT_THROWS(Sexpression::parse(str));
         },
@@ -100,5 +101,9 @@ const lest::test specification[] = {
 };
 
 int main(int argc, char *argv[]) {
-    return lest::run(specification, argc, argv);
+    if ( int failures = lest::run( specification, argc, argv ) )
+        return failures;
+
+    std::cout << "All tests passed\n", EXIT_SUCCESS;
+    return 0;
 }
