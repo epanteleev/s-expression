@@ -8,6 +8,7 @@
 #include <array>
 #include <iostream>
 #include <cassert>
+#include <span>
 
 #define shouldNeverReachHere() fprintf(stderr, "Error: Should never reach here " __FILE__ ":%d\n", __LINE__)
 
@@ -59,41 +60,39 @@ static std::string escape(const std::string &str) {
 }
 
 std::size_t Sexpression::childCount() const {
-    switch (m_kind) {
-        case SexpValueKind::SEXP:
-            return m_sexp.size();
-        case SexpValueKind::STRING:
-            return 1;
+    if(m_kind == SKind::SEXP) {
+        return m_sexp.size();
+    } else if (m_kind == SKind::STRING) {
+        return 1;
+    } else {
+        shouldNeverReachHere();
     }
-    shouldNeverReachHere();
     return 0;
 }
 
-Sexpression *Sexpression::findChild(std::string_view name) {
-    auto findPred = [&name](Sexpression &s) {
-        return s.m_str == name;
+Sexpression::iterator Sexpression::findChild(std::string_view basename) {
+    auto pred = [&basename](Sexpression &s) {
+        return s.m_name == basename;
     };
-
-    auto loc = std::find_if(m_sexp.begin(), m_sexp.end(), findPred);
-    if (loc == m_sexp.end()) {
-        return nullptr;
-    } else {
-        return loc.base();
-    }
+    return std::find_if(m_sexp.begin(), m_sexp.end(), pred);
 }
 
-Sexpression *Sexpression::getChild(std::string_view path) {
-    if (m_kind == SexpValueKind::STRING) {
-        return nullptr;
+Sexpression::iterator Sexpression::getChild(std::string_view path) {
+    if (m_kind == SKind::STRING) {
+        return end();
+    }
+    const auto pth = splitPathString(path);
+    if (path.empty()) {
+        return end();
     }
 
-    auto *curr = this;
-    for (auto &p: splitPathString(path)) {
-        auto *ptr = curr->findChild(p);
-        if (ptr != nullptr) {
+    auto curr = findChild(pth[0]);
+    for (auto p = pth.begin() + 1; p != pth.end(); p++) {
+        auto ptr = curr->findChild(*p);
+        if (ptr != curr->end()) {
             curr = ptr;
         } else {
-            return nullptr;
+            return end();
         }
     }
     return curr;
@@ -104,14 +103,14 @@ Sexpression &Sexpression::createPath(const std::vector<std::string_view> &path) 
     auto pc = path.begin();
     for (; pc != path.end(); ++pc) {
         auto nxt = el->findChild(*pc);
-        if (nxt == nullptr) {
+        if (nxt == el->end()) {
             break;
         } else {
-            el = nxt;
+            el = nxt.base();
         }
     }
     for (; pc != path.end(); ++pc) {
-        el = &el->addChild(Sexpression(SexpValueKind::SEXP, *pc));
+        el = &el->addChild(Sexpression(SKind::SEXP, *pc));
     }
     return *el;
 }
@@ -131,23 +130,22 @@ static std::string stringValToString(const std::string &s) {
 }
 
 void Sexpression::toStringIter(std::ostringstream& ostream) const {
-    switch (m_kind) {
-        case SexpValueKind::STRING:
-            ostream << stringValToString(m_str);
-            break;
-        case SexpValueKind::SEXP: {
-            ostream << '(' << m_str;
-            if (!m_sexp.empty()) {
+    if (m_kind == SKind::STRING) {
+        ostream << stringValToString(m_name);
+    } else if (m_kind == SKind::SEXP) {
+        ostream << '(' << m_name;
+        if (!m_sexp.empty()) {
+            ostream << ' ';
+        }
+        for (auto i = m_sexp.begin(); i != m_sexp.end(); i++) {
+            i->toStringIter(ostream);
+            if (i != m_sexp.end() - 1) {
                 ostream << ' ';
             }
-            for (auto i = m_sexp.begin(); i != m_sexp.end(); i++) {
-                i->toStringIter(ostream);
-                if (i != m_sexp.end() - 1) {
-                    ostream << ' ';
-                }
-            }
-            ostream << ')';
         }
+        ostream << ')';
+    } else {
+        shouldNeverReachHere();
     }
 }
 
@@ -162,8 +160,8 @@ bool Sexpression::operator==(const Sexpression &other) const {
         return false;
     }
     switch (m_kind) {
-        case SexpValueKind::SEXP: {
-            if (m_str != other.m_str || m_sexp.size() != other.m_sexp.size()) {
+        case SKind::SEXP: {
+            if (m_name != other.m_name || m_sexp.size() != other.m_sexp.size()) {
                 return false;
             }
             for (std::size_t i = 0; i < m_sexp.size(); ++i) {
@@ -174,13 +172,23 @@ bool Sexpression::operator==(const Sexpression &other) const {
             return true;
         }
 
-        case SexpValueKind::STRING:
-            return m_str == other.m_str;
+        case SKind::STRING:
+            return m_name == other.m_name;
     }
     shouldNeverReachHere();
     return false;
 }
 
 Sexpression Sexpression::makeFromStr(const std::string &string) {
-    return {SexpValueKind::STRING, escape(string)};
+    return {SKind::STRING, escape(string)};
+}
+
+std::vector<Sexpression::iterator> Sexpression::findAll(std::string_view basename) {
+    std::vector<Sexpression::iterator> result;
+    for (auto i = m_sexp.begin(); i != m_sexp.end(); i++) {
+        if (i->m_name == basename) {
+            result.push_back(i);
+        }
+    }
+    return result;
 }

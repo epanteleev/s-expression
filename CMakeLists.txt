@@ -12,4 +12,6 @@ add_executable(${PROJECT_NAME}-test tests/test_sexpresso.cpp ${FILES})
 
 add_executable(lexer-test tests/testLexer.cpp ${FILES})
 
+add_executable(sdoc-test tests/testSDocument.cpp ${FILES})
+
 add_executable(main main.cpp ${FILES})

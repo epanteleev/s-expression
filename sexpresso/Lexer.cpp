@@ -13,7 +13,7 @@ std::string Lexer::getString() {
     return result;
 }
 
-std::string::const_iterator Lexer::findStringEnd() const noexcept {
+Lexer::const_iterator Lexer::findStringEnd() const noexcept {
     auto pos = m_pos;
     while (true) {
         if (std::isspace(*pos)
@@ -38,7 +38,7 @@ char Lexer::isValidEscape(char ch) {
     return escape_vals[pos - escape_chars.begin()];
 }
 
-std::string::const_iterator Lexer::findLiteralEnd() const {
+Lexer::const_iterator Lexer::findLiteralEnd() const {
     auto i = m_pos + 1;
     for (; i != m_end; ++i) {
         if (*i == '\\') {
