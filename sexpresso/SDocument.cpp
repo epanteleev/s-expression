@@ -1,13 +1,11 @@
 #include <stack>
 #include <stdexcept>
-#include <cassert>
-#include <array>
 #include <sstream>
 #include "SDocument.h"
 #include "Lexer.h"
 
 
-SDocument SDocument::parse(const std::string &str) {
+SDocument SDocument::parse(std::string_view str) {
     std::stack<Sexpression> sexprstack{};
     std::vector<Sexpression> roots;
 
@@ -68,11 +66,11 @@ std::string SDocument::toString()  {
     return stream.str();
 }
 
-Sexpression *SDocument::operator[](std::string_view name) noexcept {
-    for (auto& i: m_sexp) {
-        if (i.getString() == name) {
-            return &i;
+Sexpression::iterator SDocument::operator[](std::string_view name) noexcept {
+    for (auto i = m_sexp.begin(); i != m_sexp.end(); i++) {
+        if (i->name() == name) {
+            return i;
         }
     }
-    return nullptr;
+    return end();
 }

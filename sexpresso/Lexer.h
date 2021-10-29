@@ -20,7 +20,10 @@ static const std::array<char, 11> escape_vals = {'\'', '"', '\?', '\\', '\a', '\
 
 class Lexer final {
 public:
-    explicit Lexer(const std::string &string) :
+    using iterator = std::string::iterator;
+    using const_iterator = std::string::const_iterator;
+public:
+    explicit Lexer(std::string_view string) :
             m_pos(string.begin()),
             m_end(string.end()),
             m_lineBegin(string.begin()) {}
@@ -31,12 +34,12 @@ private:
     }
 
     [[nodiscard]]
-    std::string::const_iterator findStringEnd() const noexcept;
+    const_iterator findStringEnd() const noexcept;
 
     std::string getString();
 
     [[nodiscard]]
-    std::string::const_iterator findLiteralEnd() const;
+    const_iterator findLiteralEnd() const;
 
     static char isValidEscape(char ch);
 
@@ -125,9 +128,9 @@ public:
     }
 
 private:
-    std::string::const_iterator m_pos;
-    std::string::const_iterator m_end;
+    const_iterator m_pos;
+    const_iterator m_end;
     std::size_t m_lineCount{};
-    std::string::const_iterator m_lineBegin{};
+    const_iterator m_lineBegin{};
 };
 
