@@ -10,13 +10,9 @@ SDocument SDocument::parse(std::string_view str) {
     std::vector<Sexpression> roots;
 
     Lexer lex(str);
-    if (!lex.is<Tok::OPEN_PAREN>()) {
-        throw std::runtime_error(format("in %d line expect '('", lex.message().c_str()));
-    }
     while (!lex.eof()) {
         lex.skipSpaces();
         if (lex.is<Tok::OPEN_PAREN>()) {
-            lex.get();
             lex.skipSpaces();
             if (!lex.is<Tok::STRING>()) {
                 throw std::runtime_error(format("in %s expect s-expression name", lex.message().c_str()));
@@ -24,7 +20,6 @@ SDocument SDocument::parse(std::string_view str) {
             sexprstack.push(Sexpression::make(lex.peek<Tok::STRING>()));
 
         } else if (lex.is<Tok::CLOSE_PAREN>()) {
-            lex.get();
             if (sexprstack.empty()) {
                 throw std::runtime_error(format("in %d a lot ')' detected", lex.message().c_str()));
             }
@@ -41,10 +36,12 @@ SDocument SDocument::parse(std::string_view str) {
             sexprstack.top().addChild(lex.peek<Tok::STRING_LITERAL>());
 
         } else if (lex.is<Tok::SEMICOLON>()) {
-            lex.get();
             lex.skipComment();
 
         } else if (lex.is<Tok::STRING>()) {
+            if (sexprstack.empty()) {
+                throw std::runtime_error(format("in %d line expect '('", lex.message().c_str()));
+            }
             auto &top = sexprstack.top();
             top.addChild(Sexpression::makeFromStr(lex.peek<Tok::STRING>()));
 
@@ -66,11 +63,12 @@ std::string SDocument::toString()  {
     return stream.str();
 }
 
-Sexpression::iterator SDocument::operator[](std::string_view name) noexcept {
-    for (auto i = m_sexp.begin(); i != m_sexp.end(); i++) {
-        if (i->name() == name) {
-            return i;
-        }
+Sexpression &SDocument::operator[](std::string_view basename) noexcept {
+    const auto ch = findChild(basename);
+    if (ch == end()) {
+        return addChild(Sexpression::make(std::string(basename)));
+    } else {
+        return *ch;
     }
-    return end();
 }
+

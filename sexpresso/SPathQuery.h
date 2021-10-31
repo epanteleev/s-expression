@@ -4,17 +4,17 @@
 #include <functional>
 #include <memory>
 #include <cassert>
+#include <variant>
+#include "Lexer.h"
+#include "Sexpression.h"
 
 class SDocument;
 
-class SPathResponce final {
-public:
-
-};
+using SPathResponse = std::vector<Sexpression::iterator>;
 
 class SQuery {
 public:
-    using ptr = std::unique_ptr<SQuery>;
+    using Pointer = std::unique_ptr<SQuery>;
 
 public:
     SQuery() = default;
@@ -22,25 +22,57 @@ public:
     virtual ~SQuery() = default;
 
 public:
-    virtual SPathResponce apply(SDocument &) = 0;
+    virtual SPathResponse apply(SDocument &) = 0;
 
 public:
-    static SQuery::ptr parse(std::string_view query);
+    static SQuery::Pointer parse(std::string_view query);
 };
 
 
-class SQueryExpr : public SQuery {
+class SQueryExpressionByAbsolutePath : public SQuery {
 public:
-    explicit SQueryExpr(std::vector<std::string_view> &&path)
+    explicit SQueryExpressionByAbsolutePath(std::vector<std::string> &&path)
             : m_path(std::move(path)) {}
 
 public:
-    SPathResponce apply(SDocument &) override {
-        assert(false);
-        return {};
-    }
+    SPathResponse apply(SDocument &doc) override;
 
 private:
-    std::vector<std::string_view> m_path;
+    std::vector<std::string> m_path;
 };
 
+class SQueryExpressionByRelativePath : public SQuery {
+public:
+    explicit SQueryExpressionByRelativePath(std::vector<std::string> &&path)
+            : m_path(std::move(path)) {}
+
+public:
+    SPathResponse apply(SDocument &doc) override;
+
+private:
+    std::vector<std::string> m_path;
+};
+
+class SQueryFilter final : public SQuery {
+public:
+    enum class FilterType: char {
+        NAME,
+        INDEX,
+    };
+
+public:
+    SQueryFilter(FilterType type, std::string data) :
+        m_type(type),
+        m_data(std::move(data)) {}
+
+    SQueryFilter(FilterType type, std::int64_t data) :
+            m_type(type),
+            m_data(data) {}
+
+public:
+    SPathResponse apply(SDocument &doc) override;
+
+private:
+    FilterType m_type;
+    std::variant<std::string, std::int64_t> m_data;
+};

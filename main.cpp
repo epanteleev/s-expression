@@ -3,12 +3,16 @@
 #include <SDocument.h>
 
 int main() {
-    std::string str("(hi there (what a cool (little list) parser) (library))");
+    std::string str("(hi there (what a cool (little list) parser) ) (hi library) (to (something))");
 
     auto s = SDocument::parse(str);
-    s["hi"]->addChild("str");
+    s.findChild("hi")->addChild("str");
+
+    auto response = s.query("/hi/what");
+    std::cout << response.front()->toString() << std::endl;
     std::cout << s.toString() << std::endl;
 
+    auto response2 = s.query("[$idx=-2]");
+    std::cout << response2.front()->toString() << std::endl;
     return 0;
 }
-

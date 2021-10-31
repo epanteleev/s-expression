@@ -8,12 +8,25 @@
 
 enum class Tok: char {
     STRING = 0,
+    INTEGER,
     OPEN_PAREN = '(',
     CLOSE_PAREN = ')',
+    OPEN_SQUARE_BRACKET = '[',
+    CLOSE_SQUARE_BRACKET = ']',
     STRING_LITERAL,
+    DOLLAR = '$',
     SEMICOLON = ';',
-    SLASH = '/'
+    SLASH = '/',
+    EQUALITY = '=',
+    // Keywords
+    NAME,
+    INDEX,
 };
+
+namespace keyword {
+    static const char* NAME = "name";
+    static const char* INDEX = "idx";
+}
 
 static const std::array<char, 11> escape_chars = {'\'', '"', '?', '\\', 'a', 'b', 'f', 'n', 'r', 't', 'v'};
 static const std::array<char, 11> escape_vals = {'\'', '"', '\?', '\\', '\a', '\b', '\f', '\n', '\r', '\t', '\v'};
@@ -29,14 +42,25 @@ public:
             m_lineBegin(string.begin()) {}
 
 private:
-    inline bool checkString() {
-        return isalnum(*m_pos);
-    }
 
     [[nodiscard]]
     const_iterator findStringEnd() const noexcept;
 
-    std::string getString();
+    std::string getString(const_iterator& it) const;
+
+    std::int64_t getInteger();
+
+    [[nodiscard]]
+    bool isInteger() const {
+        auto p = m_pos;
+        if (*p == '-') {
+            p++;
+        }
+        while(std::isdigit(*p)) {
+            p++;
+        }
+        return isDelimiter(p);
+    }
 
     [[nodiscard]]
     const_iterator findLiteralEnd() const;
@@ -49,36 +73,87 @@ private:
 
     std::string getStringLiteral();
 
+    inline void get() noexcept {
+        m_pos++;
+    }
+
+    inline bool isKeyword(const char* keyword) {
+        const_iterator tmp;
+        if (getString(tmp) == keyword) {
+            m_pos = tmp;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    static bool isDelimiter(const_iterator pos);
+
 public:
     template<Tok t>
     [[nodiscard]]
-    inline bool is() const noexcept {
-        return *m_pos == static_cast<char>(t);
+    inline bool is() noexcept {
+        if (*m_pos == static_cast<char>(t)) {
+            get();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     template<Tok t>
     requires (t == Tok::STRING)
     [[nodiscard]]
-    inline bool is() const noexcept {
-        return isalnum(*m_pos);
+    inline bool is() noexcept {
+        return std::isalnum(*m_pos);
+    }
+
+    template<Tok t>
+    requires (t == Tok::INTEGER)
+    [[nodiscard]]
+    inline bool is() noexcept {
+        return isInteger();
     }
 
     template<Tok t>
     requires (t == Tok::STRING_LITERAL)
     [[nodiscard]]
-    inline bool is() const noexcept {
+    inline bool is() noexcept {
         return *m_pos == '"';
     }
 
     template<Tok t>
+    requires (t == Tok::NAME)
+    [[nodiscard]]
+    inline bool is() noexcept {
+        return isKeyword(keyword::NAME);
+    }
+
+    template<Tok t>
+    requires (t == Tok::INDEX)
+    [[nodiscard]]
+    inline bool is() noexcept {
+        return isKeyword(keyword::INDEX);
+    }
+
+    template<Tok t>
     requires (t == Tok::STRING)
     inline decltype(auto) peek() {
-        return getString();
+        assert(is<Tok::STRING>());
+        return getString(m_pos);
+    }
+
+    template<Tok t>
+    requires (t == Tok::INTEGER)
+    inline decltype(auto) peek() {
+        assert(is<Tok::INTEGER>());
+        return getInteger();
     }
 
     template<Tok t>
     requires (t == Tok::STRING_LITERAL)
     inline decltype(auto) peek() {
+        assert(is<Tok::STRING_LITERAL>());
         return getStringLiteral();
     }
 
@@ -101,10 +176,6 @@ public:
         m_lineCount++;
         m_pos++;
         m_lineBegin = m_pos;
-    }
-
-    inline void get() noexcept {
-        m_pos++;
     }
 
     [[nodiscard]]

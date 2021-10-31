@@ -1,28 +1,39 @@
 #include <stdexcept>
 #include "Lexer.h"
 
-std::string Lexer::getString() {
-    assert(checkString());
-
+std::string Lexer::getString(Lexer::const_iterator& it) const {
     const auto pos = findStringEnd();
     if (pos == m_pos) {
         throw std::runtime_error(format("in %s expect string", message().c_str()));
     }
     auto result = std::string(m_pos, pos);
-    m_pos = pos;
+    it = pos;
     return result;
 }
 
+std::int64_t Lexer::getInteger() {
+    const_iterator it;
+    const auto res = std::strtol(m_pos.base(), const_cast<char **>(&(it.base())), 0);
+    m_pos = it;
+    return res;
+}
+
+bool Lexer::isDelimiter(Lexer::const_iterator pos) {
+    return std::isspace(*pos)
+           || *pos == ')'
+           || *pos == '('
+           || *pos == '\0'
+           || *pos == '"'
+           || *pos == ';'
+           || *pos == '/'
+           || *pos == '['
+           || *pos == ']'
+           || *pos == '=';
+}
 Lexer::const_iterator Lexer::findStringEnd() const noexcept {
     auto pos = m_pos;
     while (true) {
-        if (std::isspace(*pos)
-            || *pos == ')'
-            || *pos == '('
-            || *pos == '\0'
-            || *pos == '"'
-            || *pos == ';'
-            || *pos == '/') {
+        if (isDelimiter(pos)) {
             break;
         }
         pos += 1;
