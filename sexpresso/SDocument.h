@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Sexpression.h"
-#include "SPathQuery.h"
+#include "SQuery.h"
 
 class SDocument : public SNode  {
 public:
@@ -20,12 +20,17 @@ public:
 
     Sexpression& operator[](std::string_view basename) noexcept;
 
+    Sexpression& operator[](std::size_t idx) noexcept {
+        return m_sexp[idx];
+    }
+
     Sexpression &addChild(Sexpression &&sexpression) {
         return m_sexp.emplace_back(std::move(sexpression));
     }
 
-    std::vector<Sexpression::iterator> query(std::string_view q) {
-        return SQuery::parse(q)->apply(*this);
+    detail::SPathResponse query(std::string_view q) {
+        detail::SData data(this);
+        return detail::command::SQuery::parse(q)->apply(data).get<detail::SPathResponse>();
     };
 
 public:

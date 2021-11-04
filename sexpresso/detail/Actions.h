@@ -4,7 +4,7 @@
 #include <string>
 #include <SDocument.h>
 
-namespace detail {
+namespace detail::actions {
 
     // Find all available s-expression in SDocument by given path.
     class FindAllExpression final {
@@ -12,22 +12,22 @@ namespace detail {
         using iterator = std::vector<std::string>::iterator;
 
     public:
-        explicit FindAllExpression(SDocument &root, std::vector<std::string> &paths) :
+        explicit FindAllExpression(SData &root, std::vector<std::string> &paths) :
                 m_doc(root),
                 m_pos(paths.begin()),
                 m_end(paths.end()) {}
 
     public:
-        std::vector<Sexpression::iterator> apply() noexcept;
+        SData apply() noexcept;
 
     private:
         void findAllExpr(SNode& s) noexcept;
 
     private:
-        SDocument &m_doc;
+        SData &m_doc;
         iterator m_pos;
         iterator m_end;
-        std::vector<Sexpression::iterator> m_response;
+        std::vector<Sexpression::iterator> m_response{};
     };
 
 
@@ -37,21 +37,21 @@ namespace detail {
         using iterator = std::vector<std::string>::iterator;
 
     public:
-        explicit FindByPartOfPath(SDocument &root, std::vector<std::string> &paths) :
+        explicit FindByPartOfPath(SData &root, std::vector<std::string> &paths) :
                 m_doc(root),
                 m_pos(paths.begin()),
                 m_end(paths.end()) {}
 
     public:
-        std::vector<Sexpression::iterator> apply() noexcept;
+        SData apply() noexcept;
 
     private:
         void findAllExpr(iterator pos, SNode& s) noexcept;
 
     private:
-        SDocument &m_doc;
+        SData &m_doc;
         iterator m_pos;
         iterator m_end;
-        std::vector<Sexpression::iterator> m_response;
+        std::vector<Sexpression::iterator> m_response{};
     };
 }

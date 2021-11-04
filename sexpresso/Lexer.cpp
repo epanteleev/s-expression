@@ -85,3 +85,24 @@ std::string Lexer::getStringLiteral() {
     m_pos++;
     return result;
 }
+
+bool Lexer::isInteger() const {
+    auto p = m_pos;
+    if (*p == '-') {
+        p++;
+    }
+    while(std::isdigit(*p)) {
+        p++;
+    }
+    return isDelimiter(p);
+}
+
+bool Lexer::isKeyword(const char *keyword) {
+    const_iterator tmp;
+    if (getString(tmp) == keyword) {
+        m_pos = tmp;
+        return true;
+    } else {
+        return false;
+    }
+}

@@ -51,16 +51,7 @@ private:
     std::int64_t getInteger();
 
     [[nodiscard]]
-    bool isInteger() const {
-        auto p = m_pos;
-        if (*p == '-') {
-            p++;
-        }
-        while(std::isdigit(*p)) {
-            p++;
-        }
-        return isDelimiter(p);
-    }
+    bool isInteger() const;
 
     [[nodiscard]]
     const_iterator findLiteralEnd() const;
@@ -77,15 +68,7 @@ private:
         m_pos++;
     }
 
-    inline bool isKeyword(const char* keyword) {
-        const_iterator tmp;
-        if (getString(tmp) == keyword) {
-            m_pos = tmp;
-            return true;
-        } else {
-            return false;
-        }
-    }
+    bool isKeyword(const char* keyword);
 
     static bool isDelimiter(const_iterator pos);
 

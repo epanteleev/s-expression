@@ -22,9 +22,9 @@ public:
     virtual ~SNode() = default;
 
 public:
-    iterator findChild(std::string_view basename);
+    iterator findChild(std::string_view basename) noexcept;
 
-    std::vector<iterator> findAll(std::string_view basename);
+    std::vector<iterator> findAll(std::string_view basename) noexcept;
 
 public:
     [[nodiscard]]
@@ -41,13 +41,13 @@ public:
     }
 
     [[nodiscard]]
-    const_iterator begin() const {
-        return m_sexp.begin();
+    const_iterator cbegin() const {
+        return m_sexp.cbegin();
     }
 
     [[nodiscard]]
-    const_iterator end() const noexcept {
-        return m_sexp.end();
+    const_iterator cend() const noexcept {
+        return m_sexp.cend();
     }
 
     reverse_iterator rbegin() noexcept {

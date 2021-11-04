@@ -9,3 +9,4 @@ std::string format(const std::string &format, Args ... args) noexcept {
     std::snprintf(buf.data(), size, format.c_str(), args ...);
     return std::string{buf.begin(), buf.end()};
 }
+
