@@ -1,5 +1,5 @@
 #define lest_FEATURE_AUTO_REGISTER 1
-#include <Lexer.h>
+#include <detail/Lexer.h>
 #include <SDocument.h>
 #include "lest.hpp"
 

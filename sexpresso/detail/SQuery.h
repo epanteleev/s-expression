@@ -4,8 +4,8 @@
 #include <functional>
 #include <memory>
 #include <cassert>
-#include <variant>
 #include <list>
+#include <limits>
 #include "Lexer.h"
 #include "detail/SData.h"
 #include "Sexpression.h"
@@ -54,15 +54,17 @@ namespace detail::command {
 
     class SQueryFilter final : public SQuery {
     public:
+        using range = std::tuple<std::size_t, std::size_t>;
+    public:
         enum class FilterType: char {
-            NAME,
+            RANGE,
             INDEX,
         };
 
     public:
-        SQueryFilter(FilterType type, std::string data) :
+        SQueryFilter(FilterType type, range range) :
                 m_type(type),
-                m_data(std::move(data)) {}
+                m_data(std::move(range)) {}
 
         SQueryFilter(FilterType type, std::int64_t data) :
                 m_type(type),
@@ -75,9 +77,23 @@ namespace detail::command {
         detail::SData applyName(detail::SData &doc);
 
         detail::SData applyIndex(detail::SData &doc);
+
+        template<typename Type>
+        std::size_t verifyIdx(std::int64_t idx, Type& list) const noexcept {
+            if (idx < 0) {
+                if (-idx > list.size()) {
+                    return std::numeric_limits<std::size_t>::max();
+                } else {
+                    return idx + list.size();
+                }
+            } else {
+                return idx;
+            }
+        }
+
     private:
         FilterType m_type;
-        std::variant<std::string, std::int64_t> m_data;
+        std::variant<range, std::int64_t> m_data;
     };
 
     class SQueryCombination final : public SQuery {
@@ -85,6 +101,11 @@ namespace detail::command {
         SQueryCombination() = default;
 
     public:
+
+        inline void append(SQuery::Pointer ptr) noexcept {
+            m_commands.emplace_back(std::move(ptr));
+        }
+
         SData apply(detail::SData &doc) override;
 
     private:

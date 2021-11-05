@@ -1,5 +1,5 @@
 #define lest_FEATURE_AUTO_REGISTER 1
-#include <Lexer.h>
+#include <detail/Lexer.h>
 #include <SDocument.h>
 #include "lest.hpp"
 
@@ -149,7 +149,7 @@ SCENARIO("multiply response to query") {
             }
         }
         WHEN("query by filter") {
-            auto response = doc.query("[$name=a1]");
+            auto response = doc.query("[$range={0, 1}]");
             auto it = response.begin();
             THEN("check filter") {
                 EXPECT(!response.empty());
@@ -161,7 +161,7 @@ SCENARIO("multiply response to query") {
             }
         }
         WHEN("query by filter") {
-            auto response = doc.query("[$name=some]");
+            auto response = doc.query("[$range={6, 100}]");
             THEN("check filter") {
                 EXPECT(response.empty());
                 EXPECT(response.begin() == response.end());

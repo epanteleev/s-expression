@@ -1,4 +1,4 @@
-#include <Lexer.h>
+#include <detail/Lexer.h>
 #include "lest.hpp"
 
 

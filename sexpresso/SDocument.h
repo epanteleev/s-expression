@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Sexpression.h"
-#include "SQuery.h"
+#include "detail/SQuery.h"
 
 class SDocument : public SNode  {
 public:

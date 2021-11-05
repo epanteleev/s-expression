@@ -2,10 +2,13 @@
 #include <stdexcept>
 #include <sstream>
 #include "SDocument.h"
-#include "Lexer.h"
+#include "detail/Lexer.h"
 
 
 SDocument SDocument::parse(std::string_view str) {
+    using namespace detail::lexer;
+    using namespace detail;
+
     std::stack<Sexpression> sexprstack{};
     std::vector<Sexpression> roots;
 
