@@ -40,6 +40,11 @@ CASE("parse with comment") {
     EXPECT(doc.findChild("bc") == doc.end());
 }
 
+CASE("parse '\\n' in string end") {
+    std::string str("(a (r (c d)))\n");
+    EXPECT_NO_THROW(SDocument::parse(str));
+}
+
 int main(int argc, char *argv[]) {
     if (int failures = lest::run(testlist, argc, argv))
         return failures;

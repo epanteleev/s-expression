@@ -14,7 +14,6 @@ namespace detail::command {
     class SQuery {
     public:
         using Pointer = std::unique_ptr<SQuery>;
-
     public:
         SQuery() = default;
 
@@ -55,6 +54,8 @@ namespace detail::command {
     class SQueryFilter final : public SQuery {
     public:
         using range = std::tuple<std::size_t, std::size_t>;
+
+        static constexpr std::size_t npos = std::numeric_limits<std::size_t>::max();
     public:
         enum class FilterType: char {
             RANGE,
@@ -74,20 +75,53 @@ namespace detail::command {
         detail::SData apply(detail::SData &doc) override;
 
     private:
-        detail::SData applyName(detail::SData &doc);
+        detail::SData applyRange(detail::SData &doc);
 
         detail::SData applyIndex(detail::SData &doc);
 
         template<typename Type>
-        std::size_t verifyIdx(std::int64_t idx, Type& list) const noexcept {
+        detail::SData makeRange(Type& d) {
+            const auto &[begin, end] = std::get<range>(m_data);
+            if (begin > end) {
+                return {};
+            }
+            if (d.size() < begin) {
+                return {};
+            }
+            auto beginPos = d.begin() + begin;
+            typename Type::iterator endPos{};
+            if (d.size() < end) {
+                endPos = d.end();
+            } else {
+                endPos = d.begin() + end + 1;
+            }
+
+            SPathResponse response{};
+            for (auto i = beginPos; i != endPos; i++) {
+                // Todo coping
+                if constexpr(std::is_same<Type, SPathResponse>::value) {
+                    response.emplace_back(*i);
+                } else {
+                    response.emplace_back(i);
+                }
+            }
+            return detail::SData(std::move(response));
+        }
+
+        template<typename Type>
+        inline std::size_t verifyIdx(std::int64_t idx, Type& list) const noexcept {
             if (idx < 0) {
-                if (-idx > list.size()) {
-                    return std::numeric_limits<std::size_t>::max();
+                if (-idx >= list.size()) {
+                    return npos;
                 } else {
                     return idx + list.size();
                 }
             } else {
-                return idx;
+                if (idx >= list.size()) {
+                    return npos;
+                } else {
+                    return idx;
+                }
             }
         }
 

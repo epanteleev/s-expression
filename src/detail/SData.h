@@ -8,7 +8,7 @@ namespace detail {
 
     class SData final {
     public:
-        SData() = default;
+        SData() : m_data(SPathResponse()) {}
 
         explicit SData(SDocument* doc) : m_data(doc) {}
 

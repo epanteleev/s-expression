@@ -160,14 +160,14 @@ SCENARIO("multiply response to query") {
                 EXPECT(it == response.end());
             }
         }
-        WHEN("query by filter") {
+        WHEN("query by filter:range") {
             auto response = doc.query("[$range={6, 100}]");
             THEN("check filter") {
                 EXPECT(response.empty());
                 EXPECT(response.begin() == response.end());
             }
         }
-        WHEN("query by filter 1") {
+        WHEN("query by filter:idx") {
             auto response = doc.query("[$idx=0]");
             auto it = response.begin();
             THEN("check filter") {
@@ -175,7 +175,7 @@ SCENARIO("multiply response to query") {
                 EXPECT((*it)->toString() == "(a1 (r 32) (g 77) (b 127))");
             }
         }
-        WHEN("query by filter 1") {
+        WHEN("query by filter:idx 1") {
             auto response = doc.query("[$idx=1]");
             auto it = response.begin();
             THEN("check filter") {
@@ -183,12 +183,24 @@ SCENARIO("multiply response to query") {
                 EXPECT((*it)->toString() == "(a1 (r 62) (g 67) (b 627))");
             }
         }
-        WHEN("query by filter 1") {
+        WHEN("query by filter:idx 2") {
             auto response = doc.query("[$idx=-1]");
             auto it = response.begin();
             THEN("check filter") {
                 EXPECT(!response.empty());
                 EXPECT((*it)->toString() == "(b (a1 (r 92) (g 17) (b 67)))");
+            }
+        }
+        WHEN("query by filter:idx 3") {
+            auto response = doc.query("[$idx=5]");
+            THEN("check filter") {
+                EXPECT(response.empty());
+            }
+        }
+        WHEN("query by filter:idx 4") {
+            auto response = doc.query("[$idx=-6]");
+            THEN("check filter") {
+                EXPECT(response.empty());
             }
         }
     }

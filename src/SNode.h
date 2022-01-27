@@ -4,6 +4,7 @@
 
 class Sexpression;
 
+/** Base class for s-expression nodes. */
 class SNode {
 public:
     using iterator = std::vector<Sexpression>::iterator;
@@ -28,37 +29,18 @@ public:
 
 public:
     [[nodiscard]]
-    std::size_t size() const noexcept {
+    inline std::size_t size() const noexcept {
         return m_sexp.size();
     }
 
-    iterator begin() noexcept {
-        return m_sexp.begin();
-    }
+    iterator begin() noexcept;
 
-    iterator end() noexcept {
-        return m_sexp.end();
-    }
+    iterator end() noexcept;
 
-    [[nodiscard]]
-    const_iterator cbegin() const {
-        return m_sexp.cbegin();
-    }
+    reverse_iterator rbegin() noexcept;
 
-    [[nodiscard]]
-    const_iterator cend() const noexcept {
-        return m_sexp.cend();
-    }
-
-    reverse_iterator rbegin() noexcept {
-        return m_sexp.rbegin();
-    }
-
-    reverse_iterator rend() noexcept {
-        return m_sexp.rend();
-    }
+    reverse_iterator rend() noexcept;
 
 protected:
     std::vector<Sexpression> m_sexp{};
-
 };

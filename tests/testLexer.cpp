@@ -1,6 +1,7 @@
 #include <detail/Lexer.h>
 #include "lest.hpp"
 
+using namespace detail::lexer;
 
 const lest::test testlist[] = {
     SCENARIO("correct simple") {

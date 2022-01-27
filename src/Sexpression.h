@@ -10,10 +10,10 @@ enum class SKind : uint8_t {
     STRING,
 };
 
+/** Represent S-expression. **/
 class Sexpression final : public SNode {
 public:
     using iterator = SNode::iterator;
-    using const_iterator = SNode::const_iterator;
 
 public:
     Sexpression(Sexpression &) = delete;
@@ -30,6 +30,10 @@ private:
             m_name(string) {}
 
 public:
+    /**
+     * Add new s-expression as child.
+     * @return reference to new s-expression.
+     */
     inline Sexpression& addChild(Sexpression &&sexpression) {
         if (m_kind == SKind::STRING) {
             m_kind = SKind::SEXP;
@@ -37,8 +41,12 @@ public:
         return m_sexp.emplace_back(std::move(sexpression));
     }
 
-    inline Sexpression& addChild(std::string_view str) {
-        return addChild(makeFromStr(str));
+    /**
+     * Add new string as new s-expression.
+     * @return reference to new s-expression.
+     */
+    inline Sexpression& addChild(std::string_view string) {
+        return addChild(makeFromStr(string));
     }
 
 public:
@@ -50,7 +58,15 @@ public:
     [[nodiscard]]
     std::string toString() const;
 
-    Sexpression& operator[](std::string_view path);
+    [[nodiscard]]
+    std::string dump() const;
+
+    /**
+     * Get s-expression by given basename.
+     * If s-expression doesn't exist, new s-expression is created.
+     * @return reference to s-expression.
+     */
+    Sexpression& operator[](std::string_view basename);
 
     template<SKind k>
     [[nodiscard]]
@@ -68,11 +84,15 @@ public:
 private:
     void toStringIter(std::ostringstream &ostream) const;
 
+    void dumpIter(std::size_t tab, std::size_t depth, std::ostringstream &ostream) const;
+
 public:
+    /** Fabric method for creating new s-expression. */
     static Sexpression make(std::string &&basename) {
         return {SKind::SEXP, std::move(basename)};
     }
 
+    /** Fabric method for creating new s-expression as string data. */
     static Sexpression makeFromStr(std::string_view string);
 
 private:

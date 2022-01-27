@@ -4,7 +4,7 @@
 #include <array>
 #include <cassert>
 #include <vector>
-#include "common.h"
+#include <format>
 
 namespace detail::lexer {
     enum class Tok : char {
@@ -33,31 +33,32 @@ namespace detail::lexer {
         static const char *INDEX = "idx";
     }
 
-    static const std::array<char, 11> escape_chars = {'\'', '"', '?', '\\', 'a', 'b', 'f', 'n', 'r', 't', 'v'};
-    static const std::array<char, 11> escape_vals = {'\'', '"', '\?', '\\', '\a', '\b', '\f', '\n', '\r', '\t', '\v'};
-
     class Lexer final {
     public:
-        using iterator = std::string_view::iterator;
-        using const_iterator = std::string_view::const_iterator;
+        using iterator = const char*;
+
     public:
         explicit Lexer(std::string_view string) :
-                m_pos(string.begin()),
-                m_end(string.end()),
-                m_lineBegin(string.begin()) {}
+                m_pos(string.data()),
+                m_end(string.data() + string.length()),
+                m_lineBegin(string.data()) {}
 
     private:
 
-        [[nodiscard]]
-        const_iterator findStringEnd() const noexcept;
+        static inline bool isSpace(iterator p) {
+            return *p == ' ' || *p == '\n' || *p == '\t' || *p == '\0';
+        }
 
-        std::string getString(const_iterator &it) const;
+        [[nodiscard]]
+        iterator findStringEnd() const noexcept;
+
+        std::string getString(iterator &it) const;
 
         std::int64_t getInteger();
 
         std::size_t getUinteger();
 
-        bool checkDigits(const_iterator it) const;
+        bool checkDigits(iterator it) const;
 
         [[nodiscard]]
         bool isInteger() const;
@@ -66,9 +67,7 @@ namespace detail::lexer {
         bool isUinteger() const;
 
         [[nodiscard]]
-        const_iterator findLiteralEnd() const;
-
-        static char isValidEscape(char ch);
+        iterator findLiteralEnd() const;
 
         inline bool checkStringLiteral() {
             return *m_pos == '"';
@@ -77,12 +76,13 @@ namespace detail::lexer {
         std::string getStringLiteral();
 
         inline void get() noexcept {
+            assert(!eof());
             m_pos++;
         }
 
         bool isKeyword(const char *keyword);
 
-        static bool isDelimiter(const_iterator pos);
+        bool isDelimiter(iterator pos) const;
 
     public:
         template<Tok t>
@@ -142,6 +142,7 @@ namespace detail::lexer {
         requires (t == Tok::STRING)
         inline decltype(auto) peek() {
             assert(is<Tok::STRING>());
+            assert(!eof());
             return getString(m_pos);
         }
 
@@ -149,6 +150,7 @@ namespace detail::lexer {
         requires (t == Tok::INTEGER)
         inline decltype(auto) peek() {
             assert(is<Tok::INTEGER>());
+            assert(!eof());
             return getInteger();
         }
 
@@ -166,9 +168,9 @@ namespace detail::lexer {
             return getStringLiteral();
         }
 
-        inline void skipSpaces() {
+        inline bool skipSpaces() {
             auto pos = m_pos;
-            while (std::isspace(*pos)) {
+            while (pos != m_end && isSpace(pos)) {
                 if (*pos == '\n') {
                     m_lineCount++;
                     m_lineBegin = pos + 1;
@@ -176,6 +178,7 @@ namespace detail::lexer {
                 pos++;
             }
             m_pos = pos;
+            return true;
         }
 
         void skipComment() {
@@ -204,13 +207,13 @@ namespace detail::lexer {
 
         [[nodiscard]]
         std::string message() const noexcept {
-            return format("%d:%d '%s'", lines(), pos(), std::string(m_pos, m_end).c_str());
+            return std::format("{}:{} '{}'", lines(), pos(), std::string(m_pos, m_end));
         }
 
     private:
-        const_iterator m_pos;
-        const_iterator m_end;
+        iterator m_pos;
+        iterator m_end;
         std::size_t m_lineCount{};
-        const_iterator m_lineBegin{};
+        iterator m_lineBegin{};
     };
 }

@@ -2,20 +2,38 @@
 #include "Sexpression.h"
 #include <SDocument.h>
 
-int main() {
-    std::string str("(hi there (what a cool (little list) parser) ) (hi library)  (hi 2e) (to (something))");
+int main(int args, char** argv) {
+    if (args < 2) {
+        std::cerr << "Usage: " <<
+            std::endl << argv[0] << " <s-expr file> " << std::endl;
+        return 1;
+    }
+    std::filesystem::path path = argv[1];
+    auto s = SDocument::load(path);
+    std::cout << "Load successfully.\n\n" << s.dump() << std::endl;
 
-    auto s = SDocument::parse(str);
-    s.findChild("hi")->addChild("str");
+    while (!std::cin.eof()) {
+        std::string query;
 
-    auto response = s.query("/hi/what");
-    std::cout << response.front()->toString() << std::endl;
-    std::cout << s.toString() << std::endl;
+        std::cout <<">> ";
+        std::getline(std::cin, query, '\n');
 
-    auto response2 = s.query("[$range={1, 2}]");
-    std::cout << response2.front()->toString() << std::endl;
+        std::cout <<"query: " << query << std::endl;
+        try {
+            auto responce = s.query(query);
+            if (responce.empty()) {
+                std::cout << "<empty>" << std::endl;
 
-    std::cout << (*response2.begin() + 1)->toString() << std::endl;
+            } else {
+                for (std::size_t n = 0; auto& i: responce) {
+                    std::cout << '[' << n << "] " << i->toString() << std::endl;
+                    n += 1;
+                }
+            }
+        } catch (std::runtime_error& error) {
+            std::cerr <<"Error detected: " << error.what() << std::endl;
+        }
 
+    }
     return 0;
 }

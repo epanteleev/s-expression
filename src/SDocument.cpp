@@ -1,9 +1,9 @@
 #include <stack>
 #include <stdexcept>
-#include <sstream>
-#include "SDocument.h"
-#include "detail/Lexer.h"
 
+#include "SDocument.h"
+#include <format>
+#include <fstream>
 
 SDocument SDocument::parse(std::string_view str) {
     using namespace detail::lexer;
@@ -15,16 +15,19 @@ SDocument SDocument::parse(std::string_view str) {
     Lexer lex(str);
     while (!lex.eof()) {
         lex.skipSpaces();
+        if (lex.eof()) {
+            break;
+        }
         if (lex.is<Tok::OPEN_PAREN>()) {
             lex.skipSpaces();
             if (!lex.is<Tok::STRING>()) {
-                throw std::runtime_error(format("in %s expect s-expression name", lex.message().c_str()));
+                throw std::runtime_error(std::format("\"in {} expect s-expression name\"", lex.message()));
             }
             sexprstack.push(Sexpression::make(lex.peek<Tok::STRING>()));
 
         } else if (lex.is<Tok::CLOSE_PAREN>()) {
             if (sexprstack.empty()) {
-                throw std::runtime_error(format("in %d a lot ')' detected", lex.message().c_str()));
+                throw std::runtime_error(std::format("in {} a lot ')' detected", lex.message()));
             }
             auto topsexp = std::move(sexprstack.top());
             sexprstack.pop();
@@ -43,13 +46,13 @@ SDocument SDocument::parse(std::string_view str) {
 
         } else if (lex.is<Tok::STRING>()) {
             if (sexprstack.empty()) {
-                throw std::runtime_error(format("in %d line expect '('", lex.message().c_str()));
+                throw std::runtime_error(std::format("in {} line expect '('", lex.message()));
             }
             auto &top = sexprstack.top();
             top.addChild(Sexpression::makeFromStr(lex.peek<Tok::STRING>()));
 
         } else {
-            throw std::runtime_error(format("in %s parse error", lex.message().c_str()));
+            throw std::runtime_error(std::format("in {} parse error", lex.message()));
         }
     }
     return SDocument(std::move(roots));
@@ -75,3 +78,21 @@ Sexpression &SDocument::operator[](std::string_view basename) noexcept {
     }
 }
 
+SDocument SDocument::load(std::filesystem::path& string) {
+    std::ifstream istream;
+    istream.open(string);
+    if (!istream.is_open()) {
+        throw std::runtime_error(std::format("File {} wasn't opened", string.string()));
+    }
+    std::ostringstream sstr;
+    sstr << istream.rdbuf();
+    return parse(sstr.view());
+}
+
+std::string SDocument::dump() {
+    std::ostringstream stream{};
+    for (auto & i : m_sexp) {
+        stream << i.dump() << std::endl;
+    }
+    return stream.str();
+}

@@ -19,53 +19,28 @@ namespace detail::command {
 
     detail::SData SQueryFilter::apply(detail::SData &doc) {
         if (m_type == FilterType::RANGE) {
-            return detail::SData(applyName(doc));
+            return detail::SData(applyRange(doc));
         } else if (m_type == FilterType::INDEX) {
             return detail::SData(applyIndex(doc));
         } else {
             assert(false);
+            return {};
         }
     }
 
-    detail::SData SQueryFilter::applyName(detail::SData &doc) {
+    detail::SData SQueryFilter::applyRange(detail::SData &doc) {
         const auto &[begin, end] = std::get<range>(m_data);
         if (doc.hold<SDocument*>()) {
             auto d = doc.get<SDocument*>();
-
-            if (begin > end) {
-                return {};
-            }
-            if (d->size() < begin) {
-                return {};
-            }
-            auto beginPos = d->begin() + begin;
-            Sexpression::iterator endPos{};
-            if (d->size() < end) {
-                endPos = d->end();
-            } else {
-                endPos = d->begin() + end + 1;
-            }
-
-            SPathResponse response{};
-            auto fn = [&](Sexpression& s) {
-                response.emplace_back(Sexpression::iterator(&s));
-            };
-            std::for_each(beginPos, endPos, fn); // Todo coping
-
-            return detail::SData(std::move(response));
+            return makeRange(*d);
 
         } else if (doc.hold<SPathResponse>()) {
-//            auto d = doc.get<SPathResponse>();
-//            SPathResponse response{};
-//
-//            for (auto& i: d) {
-//                auto list = i->findAll(name);
-//                response.insert(response.end(), list.begin(), list.end());
-//            }
-            return {}; // detail::SData(std::move(response));
+            auto d = doc.get<SPathResponse>();
+            return makeRange(d);
 
         } else {
             assert(false);
+            return {};
         }
     }
 
@@ -75,16 +50,26 @@ namespace detail::command {
             auto doc = data.get<SDocument *>();
 
             std::size_t pos = verifyIdx(idx, *doc);
-            return detail::SData({Sexpression::iterator(&(*doc)[pos])});
+            if (pos == npos) {
+                return {};
+            } else {
+                return detail::SData({doc->begin() + pos});
+            }
 
         } else if (data.hold<SPathResponse>()) {
             auto doc = data.get<SPathResponse>();
 
             std::size_t pos = verifyIdx(idx, doc);
-            auto it = *(doc.begin() + pos);
-            return detail::SData({it});
+            if (pos == npos) {
+                return {};
+            } else {
+                auto it = *(doc.begin() + pos);
+                return detail::SData({it});
+            }
+
         } else {
             assert(false);
+            return {};
         }
     }
 
